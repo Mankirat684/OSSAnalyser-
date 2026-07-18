@@ -1,4 +1,4 @@
-import Parser,{Language} from 'web-tree-sitter';
+import {Parser,Language} from 'web-tree-sitter';
 import path from "node:path";
 import type{SupportedLang} from './types.js'
 

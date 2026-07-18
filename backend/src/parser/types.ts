@@ -17,7 +17,7 @@ export interface FunctionNode {
   /** raw source text of the function body, useful later for LLM chunking */
   text: string;
   /** enclosing class name, if this is a method */
-  parentClass?: string;
+  parentClass?: string | undefined;
 }
 
 export interface ParsedFile {
