@@ -1,6 +1,7 @@
 import type { Parser, Node } from "web-tree-sitter";
 import { FUNCTION_QUERY } from "./query.js";
 import { loadLanguage } from "./loadLanguage.js";
+import { extractImports, extractExports } from "./Extractimportsexports.js";
 import type { FunctionNode, ParsedFile, SupportedLang } from "./types.js";
 
 /** Walks up from `node` and returns true if it's inside an `export_statement`. */
@@ -113,5 +114,8 @@ export async function extractFunctionsFromSource(
   // Sort by source position so downstream consumers get deterministic ordering.
   functions.sort((a, b) => a.startIndex - b.startIndex);
 
-  return { filePath, lang, functions };
+  const imports = extractImports(tree.rootNode);
+  const exports = extractExports(tree.rootNode);
+
+  return { filePath, lang, functions, imports, exports };
 }
