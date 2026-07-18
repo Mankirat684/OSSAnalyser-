@@ -2,6 +2,7 @@ import type { Parser, Node } from "web-tree-sitter";
 import { FUNCTION_QUERY } from "./query.js";
 import { loadLanguage } from "./loadLanguage.js";
 import { extractImports, extractExports } from "./Extractimportsexports.js";
+import { extractCalls } from "./extractCalls.js";
 import type { FunctionNode, ParsedFile, SupportedLang } from "./types.js";
 
 /** Walks up from `node` and returns true if it's inside an `export_statement`. */
@@ -116,6 +117,7 @@ export async function extractFunctionsFromSource(
 
   const imports = extractImports(tree.rootNode);
   const exports = extractExports(tree.rootNode);
+  const calls = await extractCalls(tree.rootNode, lang, functions);
 
-  return { filePath, lang, functions, imports, exports };
+  return { filePath, lang, functions, imports, exports, calls };
 }

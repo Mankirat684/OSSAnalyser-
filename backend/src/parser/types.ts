@@ -1,3 +1,5 @@
+import type { CallSite } from "./extractCalls.js";
+
 export type SupportedLang = "javascript" | "typescript" | "tsx";
 
 export interface FunctionNode {
@@ -58,4 +60,5 @@ export interface ParsedFile {
   functions: FunctionNode[];
   imports: ImportBinding[];
   exports: ExportBinding[];
+  calls: CallSite[];
 }
