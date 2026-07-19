@@ -8,6 +8,8 @@ export interface CallSite {
   callerId: string | null;
   /** raw identifier text being called — NOT yet resolved to a FunctionNode. Could be local, imported, or a global/external (e.g. "fetch", "console.log"). */
   calleeName: string;
+  /** for `obj.foo()` calls where `obj` is a plain identifier — its name. undefined for direct calls (`foo()`) and for complex receivers (`a.b.c()`, `arr[i]()`, `this.foo()`). */
+  objectName?: string | undefined;
   line: number;
 }
 
@@ -43,6 +45,14 @@ function findEnclosingFunctionId(node: Node, idByStartIndex: Map<number, string>
   return null;
 }
 
+/** For `obj.foo()`, returns "obj" — but only when the receiver is a plain identifier. `this.foo()`, `a.b.c()`, and `arr[i]()` all return undefined since we can't cheaply resolve those without type info. */
+function getSimpleReceiver(callNode: Node): string | undefined {
+  const funcNode = callNode.childForFieldName("function");
+  if (funcNode?.type !== "member_expression") return undefined;
+  const objectNode = funcNode.childForFieldName("object");
+  return objectNode?.type === "identifier" ? objectNode.text : undefined;
+}
+
 export async function extractCalls(root: Node, lang: SupportedLang, functions: FunctionNode[]): Promise<CallSite[]> {
   // startIndex is unique per function within a file (two functions can't start at the same byte offset),
   // so it's a safe, cheap key for mapping an AST node back to the FunctionNode we already extracted.
@@ -61,6 +71,7 @@ export async function extractCalls(root: Node, lang: SupportedLang, functions: F
     calls.push({
       callerId: findEnclosingFunctionId(callCapture.node, idByStartIndex),
       calleeName: calleeCapture.node.text,
+      objectName: getSimpleReceiver(callCapture.node),
       line: callCapture.node.startPosition.row + 1,
     });
   }

@@ -2,6 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { initParser, createParserFor, langForFile } from "./loadLanguage.js";
 import { extractFunctionsFromSource } from "./extractFunctions.js";
+import { resolveAllCalls } from "./crossFileResolve.js";
+import { loadResolverConfig } from "./resolveModule.js";
 import type { ParsedFile, SupportedLang } from "./types.js";
 import { fileURLToPath } from "node:url";
 
@@ -40,7 +42,7 @@ export async function parseRepo(repoRoot: string): Promise<ParsedFile[]> {
     const parser = parserCache.get(lang)!;
 
     const source = await fs.readFile(file, "utf8");
-    const relativePath = path.relative(repoRoot, file);
+    const relativePath = path.relative(repoRoot, file).split(path.sep).join("/");
 
     try {
       const parsed = await extractFunctionsFromSource(source, relativePath, lang, parser);
@@ -49,15 +51,12 @@ export async function parseRepo(repoRoot: string): Promise<ParsedFile[]> {
       console.error(`Failed to parse ${relativePath}:`, err);
     }
   }
-
+  
   return results;
 }
 
 // Example standalone run: `tsx index.ts /path/to/cloned/repo`
-
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
-
-
 if (isMain) {
   const repoRoot = process.argv[2];
   if (!repoRoot) {
@@ -83,6 +82,16 @@ if (isMain) {
           `  export ${exp.exportedName}${exp.source ? ` (re-export from "${exp.source}")` : ""}`
         );
       }
+    }
+
+    console.log("\n--- resolved call edges ---");
+    const config = loadResolverConfig(repoRoot);
+    const edges = resolveAllCalls(results, config);
+    const resolvedCount = edges.filter((e) => e.to.type === "resolved").length;
+    console.log(`${edges.length} total call edges, ${resolvedCount} resolved to a specific function\n`);
+    for (const edge of edges) {
+      const target = edge.to.type === "resolved" ? edge.to.functionId : `[external: ${edge.to.label} — ${edge.to.reason}]`;
+      console.log(`  ${edge.from} -> ${target}`);
     }
   });
 }

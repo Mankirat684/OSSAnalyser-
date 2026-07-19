@@ -54,6 +54,28 @@ export interface ExportBinding {
   line: number;
 }
 
+/**
+ * Why a call couldn't be resolved to a specific FunctionNode.
+ * Kept as a reason rather than just dropping the edge, so you retain visibility
+ * into external dependencies (npm calls) and genuinely ambiguous method calls.
+ */
+export type ExternalReason =
+  | "npm-package" // resolved to an external package, e.g. lodash, react
+  | "unresolved-import" // looked like a repo file but nothing on disk matched
+  | "unresolved-export" // target file resolved, but it doesn't export that name
+  | "unresolved-identifier" // not declared or imported anywhere in the caller's file (global/builtin, or truly undefined)
+  | "method-heuristic"; // obj.foo() where obj isn't a traceable namespace import — needs real type info to resolve
+
+export type EdgeTarget =
+  | { type: "resolved"; functionId: string }
+  | { type: "external"; label: string; reason: ExternalReason };
+
+export interface CallEdge {
+  from: string; // FunctionNode.id of the caller
+  to: EdgeTarget;
+  line: number;
+}
+
 export interface ParsedFile {
   filePath: string;
   lang: SupportedLang;

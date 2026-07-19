@@ -1,8 +1,8 @@
-import type { FunctionNode, ParsedFile } from "./types.js";
+import type { FunctionNode, ParsedFile, ImportBinding } from "./types.js";
 
 export type SymbolTableEntry =
   | { kind: "local"; name: string; functionNode: FunctionNode }
-  | { kind: "imported"; name: string; source: string; importedName: string | null };
+  | { kind: "imported"; name: string; source: string; importedName: string | null; importKind: ImportBinding["kind"] };
 
 /** Keyed by the name as referenced *within this file* (i.e. post local-alias for imports). */
 export type FileSymbolTable = Map<string, SymbolTableEntry>;
@@ -41,6 +41,7 @@ export function buildSymbolTable(parsed: ParsedFile): FileSymbolTable {
       name: imp.localName,
       source: imp.source,
       importedName: imp.importedName,
+      importKind: imp.kind,
     });
   }
 
